@@ -372,12 +372,31 @@ extension ScheduleNavBar: WeekCellDelegate {
         
         // Перезагружаем данные всех ячеек
         weekView.reloadData()
-        
+        updateDayLabels(selectedDate)
+    }
+
+    func selectDate(_ date: Date) {
+        let calendar = Calendar.current
+        guard let weekIndex = calendar.dateComponents([.weekOfYear], from: baseDate, to: date).weekOfYear,
+              weekIndex >= 0, weekIndex < weeks.count,
+              let weekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start,
+              let dayIndex = calendar.dateComponents([.day], from: weekStart, to: date).day,
+              dayIndex >= 0, dayIndex < 7 else { return }
+
+        selectedWeekIndex = weekIndex
+        selectedDayIndex = dayIndex
+        weekView.reloadData()
+        weekView.scrollToItem(at: IndexPath(item: weekIndex, section: 0), at: .centeredHorizontally, animated: true)
+        updateDayLabels(date)
+        delegate?.didSelectDay(date)
+    }
+
+    private func updateDayLabels(_ selectedDate: Date) {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "MMM dd, yyyy"  // Формат даты: Apr 08, 2022
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         currentDateLabel.text = dateFormatter.string(from: selectedDate)
-        
+
         guard let currentWeekIndex = getCurrentWeekIndex(),
               let currentDayIndex = getCurrentDayIndexInWeek(currentWeekIndex) else {
             return

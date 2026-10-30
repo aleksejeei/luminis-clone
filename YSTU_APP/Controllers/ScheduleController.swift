@@ -149,6 +149,20 @@ final class ScheduleController: BaseController {
         scheduleFeedTable.rowHeight = UITableView.automaticDimension
         scheduleFeedTable.showsVerticalScrollIndicator = false
         scheduleFeedTable.showsHorizontalScrollIndicator = false
+
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(daySwiped(_:)))
+        swipeLeft.direction = .left
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(daySwiped(_:)))
+        swipeRight.direction = .right
+        scheduleFeedTable.addGestureRecognizer(swipeLeft)
+        scheduleFeedTable.addGestureRecognizer(swipeRight)
+    }
+
+    @objc private func daySwiped(_ gesture: UISwipeGestureRecognizer) {
+        var components = DateComponents()
+        components.day = gesture.direction == .left ? 1 : -1
+        guard let next = Calendar.current.date(byAdding: components, to: navBar.selectedDate) else { return }
+        navBar.selectDate(next)
     }
 
     static func lessonTypeName(_ type: Int?) -> String {
