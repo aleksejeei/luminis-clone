@@ -76,38 +76,23 @@ final class TabBarController: UITabBarController, UITabBarControllerDelegate {
 
 private extension UITabBar {
     func setCustomStyle() {
-        let appearence = UITabBarAppearance()
-        
-        // Настраиваем цвет для выбранных и невыбранных элементов через appearance
-        appearence.stackedLayoutAppearance.selected.iconColor = AccentColors.selectedColor
-        appearence.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: AccentColors.selectedColor]
+        let appearance = UITabBarAppearance()
+        appearance.configureWithDefaultBackground()
 
-        appearence.stackedLayoutAppearance.normal.iconColor = AccentColors.normalColor
-        appearence.stackedLayoutAppearance.normal.titleTextAttributes = [NSAttributedString.Key.font: UIFont.Montserrat.Regular.size(of: 10), .foregroundColor: UIColor.clear]
-        
-        appearence.backgroundColor = AccentColors.interfaceColor
-        self.scrollEdgeAppearance = appearence
-        self.standardAppearance = appearence
-        
-        self.layer.cornerRadius = 24
-        self.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        self.layer.masksToBounds = true
-        
-        let shadowLayer = CALayer()
-        shadowLayer.frame = self.frame
-        shadowLayer.cornerRadius = self.layer.cornerRadius
-        shadowLayer.backgroundColor = UIColor.systemBackground.cgColor
-        shadowLayer.shadowOffset = CGSize(width: 0, height: 0)
-        shadowLayer.shadowRadius = 10
-        shadowLayer.shadowColor = UIColor.black.cgColor
-        shadowLayer.shadowOpacity = 0.05
-        
-        if let superview = self.superview {
-            superview.layer.insertSublayer(shadowLayer, below: self.layer)
-        }
-        
-        self.itemPositioning = .centered
-        self.itemWidth = 65
+        appearance.stackedLayoutAppearance.selected.iconColor = AccentColors.selectedColor
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+            .font: UIFont.Montserrat.Regular.size(of: 10),
+            .foregroundColor: AccentColors.selectedColor
+        ]
+
+        appearance.stackedLayoutAppearance.normal.iconColor = AccentColors.normalColor
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+            .font: UIFont.Montserrat.Regular.size(of: 10),
+            .foregroundColor: AccentColors.normalColor
+        ]
+
+        self.standardAppearance = appearance
+        self.scrollEdgeAppearance = appearance
     }
 }
 

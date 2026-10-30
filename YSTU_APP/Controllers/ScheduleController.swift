@@ -150,8 +150,16 @@ final class ScheduleController: BaseController {
         scheduleFeedTable.showsVerticalScrollIndicator = false
         scheduleFeedTable.showsHorizontalScrollIndicator = false
     }
-    
-    
+
+    static func lessonTypeName(_ type: Int?) -> String {
+        switch type {
+        case 2: return "Lecture"
+        case 4: return "Practice"
+        case 8: return "Lab work"
+        case 256: return "Exam"
+        default: return "Other"
+        }
+    }
 }
 
 extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
@@ -173,7 +181,7 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
         let lesson = lessons[indexPath.row] // Исправлено с indexPath.section на indexPath.row
 //        print("Configuring cell with lesson: \(lesson)")
         cell.configureTimeView(start: lesson.startAt ?? "", end: lesson.endAt ?? "")
-        cell.configureCourseView(name: lesson.lessonName ?? "", type: lesson.isLecture == true ? "Lecture" : "Class", room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
+        cell.configureCourseView(name: lesson.lessonName ?? "", type: Self.lessonTypeName(lesson.type), room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
         cell.setRailEnds(isFirst: indexPath.row == 0, isLast: indexPath.row == lessons.count - 1)
         
         return cell
