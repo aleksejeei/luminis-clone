@@ -12,6 +12,9 @@ struct Constants {
     static let defaultGroup = "ЦПИ-11"
     static let selectedGroupKey = "selectedGroup"
     static let baseURL = "https://gg-api.ystuty.ru/s"
+    static let oauthURL = "https://oauth.ystuty.ru"
+    static let oauthClientID = "x-id"
+    static let oauthScope = "general:user:personal,general:mark:person"
 }
 
 enum APIError: Error {

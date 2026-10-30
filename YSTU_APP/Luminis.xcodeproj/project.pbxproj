@@ -59,6 +59,9 @@
 		4DAF7EE62CB95A5E0016F142 /* DayButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF7EE52CB95A5E0016F142 /* DayButton.swift */; };
 		4DAF7EE82CB96A1F0016F142 /* WeekModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DAF7EE72CB96A1F0016F142 /* WeekModel.swift */; };
 		4DBBC2892D2998FC005DB972 /* ScheduleHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DBBC2882D2998EC005DB972 /* ScheduleHeader.swift */; };
+		4DACC01100000000000000A2 /* AccountManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DACC01100000000000000A1 /* AccountManager.swift */; };
+		4DACC01100000000000000B2 /* AccountModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DACC01100000000000000B1 /* AccountModels.swift */; };
+		4DACC01100000000000000C2 /* MarkCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DACC01100000000000000C1 /* MarkCell.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -116,6 +119,9 @@
 		4DAF7EE52CB95A5E0016F142 /* DayButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayButton.swift; sourceTree = "<group>"; };
 		4DAF7EE72CB96A1F0016F142 /* WeekModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekModel.swift; sourceTree = "<group>"; };
 		4DBBC2882D2998EC005DB972 /* ScheduleHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleHeader.swift; sourceTree = "<group>"; };
+		4DACC01100000000000000A1 /* AccountManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountManager.swift; sourceTree = "<group>"; };
+		4DACC01100000000000000B1 /* AccountModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountModels.swift; sourceTree = "<group>"; };
+		4DACC01100000000000000C1 /* MarkCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkCell.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -256,6 +262,7 @@
 			isa = PBXGroup;
 			children = (
 				4D0105272CA1DD5700ECC702 /* APICaller.swift */,
+				4DACC01100000000000000A1 /* AccountManager.swift */,
 			);
 			path = Managers;
 			sourceTree = "<group>";
@@ -266,6 +273,7 @@
 				4D91CDB92D02E8DB0089AC70 /* GroupsList.swift */,
 				4D01052A2CA32E1B00ECC702 /* Lesson.swift */,
 				4DAF7EE72CB96A1F0016F142 /* WeekModel.swift */,
+				4DACC01100000000000000B1 /* AccountModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -282,8 +290,17 @@
 			isa = PBXGroup;
 			children = (
 				4DF52E312CB597AF00237CF5 /* ScheduleViews */,
+				4DACC01100000000000000D1 /* MarksViews */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		4DACC01100000000000000D1 /* MarksViews */ = {
+			isa = PBXGroup;
+			children = (
+				4DACC01100000000000000C1 /* MarkCell.swift */,
+			);
+			path = MarksViews;
 			sourceTree = "<group>";
 		};
 		4DF52E312CB597AF00237CF5 /* ScheduleViews */ = {
@@ -429,6 +446,9 @@
 				4D0104EC2C9082AE00ECC702 /* ScheduleCoordinator.swift in Sources */,
 				4D0104E82C90772800ECC702 /* Coordinator.swift in Sources */,
 				4D373AC72D0AD3F0007DE1D6 /* ScheduleTableViewCell.swift in Sources */,
+				4DACC01100000000000000A2 /* AccountManager.swift in Sources */,
+				4DACC01100000000000000B2 /* AccountModels.swift in Sources */,
+				4DACC01100000000000000C2 /* MarkCell.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
