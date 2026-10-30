@@ -17,28 +17,6 @@ class ScheduleTableViewCell: UITableViewCell {
         return view
     }()
 
-    private let railView: UIView = {
-        let view = UIView()
-        view.backgroundColor = AccentColors.normalColor.withAlphaComponent(0.2)
-        return view
-    }()
-
-    private let topDot: UIView = {
-        let view = UIView()
-        view.backgroundColor = AccentColors.normalColor
-        view.layer.cornerRadius = 3
-        view.isHidden = true
-        return view
-    }()
-
-    private let bottomDot: UIView = {
-        let view = UIView()
-        view.backgroundColor = AccentColors.normalColor
-        view.layer.cornerRadius = 3
-        view.isHidden = true
-        return view
-    }()
-
     private var timeView = TimeView()
     private var courseView = CourseView()
     
@@ -73,11 +51,6 @@ class ScheduleTableViewCell: UITableViewCell {
     func configureCourseView(name: String?, type: String?, room: String?, teacher: String?) {
         courseView.updateView(name: name, type: type, room: room, teacher: teacher)
     }
-
-    func setRailEnds(isFirst: Bool, isLast: Bool) {
-        topDot.isHidden = !isFirst
-        bottomDot.isHidden = !isLast
-    }
 }
 
 private extension ScheduleTableViewCell {
@@ -102,38 +75,11 @@ private extension ScheduleTableViewCell {
             timeView.widthAnchor.constraint(equalToConstant: 82)
         ])
 
-        cellView.addSubview(railView)
-        railView.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            railView.leadingAnchor.constraint(equalTo: timeView.trailingAnchor, constant: 3),
-            railView.topAnchor.constraint(equalTo: cellView.topAnchor),
-            railView.bottomAnchor.constraint(equalTo: cellView.bottomAnchor),
-            railView.widthAnchor.constraint(equalToConstant: 2)
-        ])
-
-        cellView.addSubview(topDot)
-        cellView.addSubview(bottomDot)
-        topDot.translatesAutoresizingMaskIntoConstraints = false
-        bottomDot.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            topDot.centerXAnchor.constraint(equalTo: railView.centerXAnchor),
-            topDot.topAnchor.constraint(equalTo: cellView.topAnchor, constant: 8),
-            topDot.widthAnchor.constraint(equalToConstant: 6),
-            topDot.heightAnchor.constraint(equalToConstant: 6),
-
-            bottomDot.centerXAnchor.constraint(equalTo: railView.centerXAnchor),
-            bottomDot.bottomAnchor.constraint(equalTo: cellView.bottomAnchor, constant: -8),
-            bottomDot.widthAnchor.constraint(equalToConstant: 6),
-            bottomDot.heightAnchor.constraint(equalToConstant: 6)
-        ])
-
         cellView.addSubview(courseView)
         courseView.translatesAutoresizingMaskIntoConstraints = false
-        
+
         NSLayoutConstraint.activate([
-            courseView.leadingAnchor.constraint(equalTo: railView.trailingAnchor, constant: 4),
+            courseView.leadingAnchor.constraint(equalTo: timeView.trailingAnchor, constant: 8),
             courseView.trailingAnchor.constraint(equalTo: cellView.trailingAnchor, constant: -16),
             courseView.topAnchor.constraint(equalTo: cellView.topAnchor, constant: 8),
             courseView.bottomAnchor.constraint(equalTo: cellView.bottomAnchor, constant: -8),

@@ -151,7 +151,6 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
 //        print("Configuring cell with lesson: \(lesson)")
         cell.configureTimeView(start: lesson.startAt ?? "", end: lesson.endAt ?? "")
         cell.configureCourseView(name: lesson.lessonName ?? "", type: lesson.isLecture == true ? "Лекция" : "Занятие", room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
-        cell.setRailEnds(isFirst: indexPath.row == 0, isLast: indexPath.row == lessons.count - 1)
         
         return cell
     }
