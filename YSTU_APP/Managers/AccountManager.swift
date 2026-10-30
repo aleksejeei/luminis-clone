@@ -11,6 +11,19 @@ enum AuthError: Error {
     case failedToGetData
 }
 
+struct ServerError: Error {
+    let code: Int
+    let message: String
+}
+
+private struct APIErrorResponse: Decodable {
+    struct Inner: Decodable {
+        let code: Int?
+        let message: String?
+    }
+    let error: Inner?
+}
+
 final class AccountManager {
     static let shared = AccountManager()
     private init() {}
@@ -64,7 +77,12 @@ final class AccountManager {
 
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             guard (200..<300).contains(status) else {
-                completion(.failure(AuthError.invalidCredentials))
+                if let apiError = try? JSONDecoder().decode(APIErrorResponse.self, from: data),
+                   let inner = apiError.error {
+                    completion(.failure(ServerError(code: inner.code ?? status, message: inner.message ?? "")))
+                } else {
+                    completion(.failure(AuthError.invalidCredentials))
+                }
                 return
             }
 

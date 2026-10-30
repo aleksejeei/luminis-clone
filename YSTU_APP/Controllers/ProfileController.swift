@@ -34,7 +34,7 @@ final class ProfileController: BaseController {
         let label = UILabel()
         label.font = .Montserrat.Medium.size(of: 13)
         label.textColor = AccentColors.normalColor
-        label.text = "Данные от личного кабинета ЯГТУ"
+        label.text = "Логин и пароль от lk.ystu.ru"
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
@@ -164,7 +164,30 @@ final class ProfileController: BaseController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         navigationController?.setNavigationBarHidden(false, animated: false)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
         renderState()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    @objc private func keyboardWillShow(_ note: Notification) {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        scrollView.contentInset.bottom = frame.height + 12
+        scrollView.verticalScrollIndicatorInsets.bottom = frame.height + 12
+    }
+
+    @objc private func keyboardWillHide(_ note: Notification) {
+        scrollView.contentInset.bottom = 0
+        scrollView.verticalScrollIndicatorInsets.bottom = 0
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
 
     private func renderState() {
@@ -183,7 +206,7 @@ final class ProfileController: BaseController {
     // MARK: - Actions
 
     @objc private func signInTapped() {
-        guard let login = loginField.text, !login.isEmpty,
+        guard let login = loginField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !login.isEmpty,
               let password = passwordField.text, !password.isEmpty else {
             showError("Введите логин и пароль")
             return
@@ -205,7 +228,14 @@ final class ProfileController: BaseController {
                     self?.passwordField.text = nil
                     self?.renderState()
                 case .failure(let error):
-                    if (error as? AuthError) == .invalidCredentials {
+                    if let server = error as? ServerError {
+                        if server.code == 401 || server.code == 403 {
+                            self?.showError("Неверный логин или пароль")
+                        } else {
+                            let text = server.message.isEmpty ? "Ошибка входа" : server.message
+                            self?.showError("\(text) (код \(server.code))")
+                        }
+                    } else if (error as? AuthError) == .invalidCredentials {
                         self?.showError("Неверный логин или пароль")
                     } else {
                         self?.showError("Ошибка сети. Попробуйте позже")
@@ -478,6 +508,10 @@ final class ProfileController: BaseController {
         ]
         signInButton.addTarget(self, action: #selector(signInTapped), for: .touchUpInside)
         logoutButton.addTarget(self, action: #selector(logoutTapped), for: .touchUpInside)
+        scrollView.keyboardDismissMode = .interactive
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
         setShadow(loginCard)
         setShadow(profileCard)
         setShadow(infoCard)

@@ -22,8 +22,26 @@ final class ScheduleController: BaseController {
     override func viewDidLoad() {
         super.viewDidLoad()
         navBar.delegate = self
+        setupNavBarGlass()
         getSchedule(for: Date())
 //        getGruopList()
+    }
+
+    private func setupNavBarGlass() {
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+        blur.layer.cornerRadius = 24
+        blur.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        blur.clipsToBounds = true
+        navBar.insertSubview(blur, at: 0)
+        navBar.backgroundColor = .clear
+
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: navBar.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: navBar.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: navBar.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: navBar.bottomAnchor)
+        ])
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -41,7 +59,11 @@ final class ScheduleController: BaseController {
         navBar.translatesAutoresizingMaskIntoConstraints = false
         navBar.layer.cornerRadius = 24
         navBar.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
-        setShadow(navBar)
+        navBar.layer.shadowColor = AccentColors.shadowColor?.cgColor
+        navBar.layer.shadowOpacity = 0.16
+        navBar.layer.shadowRadius = 14
+        navBar.layer.shadowOffset = CGSize(width: 0, height: 6)
+        navBar.layer.masksToBounds = false
         
         NSLayoutConstraint.activate([
             navBar.topAnchor.constraint(equalTo: view.topAnchor),
