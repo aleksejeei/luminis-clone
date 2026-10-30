@@ -196,6 +196,7 @@ final class ScheduleController: BaseController {
         let pan = UIPanGestureRecognizer(target: self, action: #selector(dayPanned(_:)))
         pan.delegate = self
         scheduleFeedTable.addGestureRecognizer(pan)
+        scheduleFeedTable.panGestureRecognizer.require(toFail: pan)
     }
 
     @objc private func dayPanned(_ gesture: UIPanGestureRecognizer) {
@@ -231,7 +232,7 @@ final class ScheduleController: BaseController {
             guard panInProgress else { return }
             panInProgress = false
             let velocity = abs(gesture.velocity(in: view).x)
-            let commit = panTriggered && (abs(tx) > width * 0.3 || velocity > 500)
+            let commit = panTriggered && (abs(tx) > width * 0.25 || velocity > 350)
 
             if commit {
                 panCommitted = true
@@ -341,7 +342,7 @@ extension ScheduleController: UIGestureRecognizerDelegate {
     func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
         let t = pan.translation(in: view)
-        return abs(t.x) > abs(t.y) && abs(t.x) > 8
+        return abs(t.x) > abs(t.y)
     }
 }
 
