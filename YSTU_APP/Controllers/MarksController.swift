@@ -163,7 +163,7 @@ final class MarksController: BaseController {
     }
 
     private func updateAverage() {
-        let values = visibleMarks().compactMap { $0.mark }.filter { $0 > 0 }
+        let values = marks.compactMap { $0.mark }.filter { $0 > 0 }
         if values.isEmpty {
             averageLabel.text = nil
         } else {
