@@ -11,6 +11,9 @@ final class ScheduleController: BaseController {
     
     private let navBar = ScheduleNavBar()
     private var lessons: [Lesson] = []
+    private var currentDate = Date()
+    private var pendingSnapshot: UIView?
+    private var pendingDirection: CGFloat = 0
     
     let scheduleFeedTable: UITableView = {
         let table = UITableView(frame: .zero, style: .grouped)
@@ -101,7 +104,32 @@ final class ScheduleController: BaseController {
                 self.scheduleFeedTable.backgroundView = nil
             }
             self.scheduleFeedTable.reloadData()
+            self.scheduleFeedTable.layoutIfNeeded()
+            self.playTransition()
         }
+    }
+
+    private func captureSnapshot() {
+        pendingSnapshot?.removeFromSuperview()
+        guard let snapshot = scheduleFeedTable.snapshotView(afterScreenUpdates: false) else { return }
+        snapshot.frame = scheduleFeedTable.frame
+        view.insertSubview(snapshot, aboveSubview: scheduleFeedTable)
+        pendingSnapshot = snapshot
+    }
+
+    private func playTransition() {
+        guard let snapshot = pendingSnapshot else { return }
+        pendingSnapshot = nil
+        let width = max(scheduleFeedTable.bounds.width, 1)
+
+        scheduleFeedTable.transform = CGAffineTransform(translationX: width * pendingDirection, y: 0)
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut, animations: {
+            snapshot.transform = CGAffineTransform(translationX: -width * self.pendingDirection, y: 0)
+            snapshot.alpha = 0.4
+            self.scheduleFeedTable.transform = .identity
+        }, completion: { _ in
+            snapshot.removeFromSuperview()
+        })
     }
     
     private func getGruopList() {
@@ -213,6 +241,11 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
 
 extension ScheduleController: ScheduleNavBarDelegate {
     func didSelectDay(_ date: Date) {
+        if date != currentDate {
+            pendingDirection = date > currentDate ? 1 : -1
+            captureSnapshot()
+        }
+        currentDate = date
         self.getSchedule(for: date)
     }
 
