@@ -16,13 +16,13 @@ jobs:
           xcode-version: latest-stable
 
       - name: List schemes (debug)
-        run: xcodebuild -list -project YSTU_APP/YSTU_APP.xcodeproj
+        run: xcodebuild -list -project YSTU_APP/Luminis.xcodeproj
 
       - name: Build unsigned .app
         run: |
           xcodebuild build \
-            -project YSTU_APP/YSTU_APP.xcodeproj \
-            -scheme YSTU_APP \
+            -project YSTU_APP/Luminis.xcodeproj \
+            -scheme Luminis \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -derivedDataPath DerivedData \
@@ -34,7 +34,7 @@ jobs:
       - name: Package .ipa
         run: |
           mkdir -p Payload
-          cp -R "DerivedData/Build/Products/Release-iphoneos/YSTU_APP.app" Payload/
+          cp -R DerivedData/Build/Products/Release-iphoneos/*.app Payload/
           zip -r Luminis-unsigned.ipa Payload
           ls -lh Luminis-unsigned.ipa
 

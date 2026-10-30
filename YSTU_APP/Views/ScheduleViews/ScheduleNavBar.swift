@@ -7,6 +7,7 @@
 
 protocol ScheduleNavBarDelegate: AnyObject {
     func didSelectDay(_ date: Date)
+    func didSelectGroup(_ group: String)
 }
 
 import UIKit
@@ -136,7 +137,14 @@ final class ScheduleNavBar: UIView {
         return dates
     }
     
-    let chooseGroupButton = ChoosyButton(groupName: "ЦПИ-11")
+    let chooseGroupButton = ChoosyButton(groupName: APICaller.shared.selectedGroup)
+
+    var selectedDate: Date {
+        guard let weekIndex = selectedWeekIndex, let dayIndex = selectedDayIndex,
+              weekIndex < weeks.count, dayIndex < 7 else { return Date() }
+        let dates = getDatesForWeek(startDate: weeks[weekIndex].startDate)
+        return dates[dayIndex]
+    }
     
     func fetchAndConfigureContextMenu() {
         APICaller.shared.getGroupsList { [weak self] result in
@@ -164,10 +172,14 @@ final class ScheduleNavBar: UIView {
         DispatchQueue.global().async {
             let menus = data.map { section in
                 let actions = section.groups.map { group in
-                    UIAction(title: group) { [weak self] _ in
+                    let action = UIAction(title: group) { [weak self] _ in
                         self?.chooseGroupButton.changeGroupName(group)
+                        APICaller.shared.selectedGroup = group
+                        self?.delegate?.didSelectGroup(group)
                         self?.layoutIfNeeded()
                     }
+                    action.state = group == APICaller.shared.selectedGroup ? .on : .off
+                    return action
                 }
                 return UIMenu(title: section.title, children: actions)
             }

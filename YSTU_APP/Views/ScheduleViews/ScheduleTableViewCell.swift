@@ -35,8 +35,17 @@ class ScheduleTableViewCell: UITableViewCell {
     }
     
     func configureTimeView(start: String?, end: String?) {
-        guard let start = start, let end = end else { return }
-        timeView.updateView(start: start, end: end)
+        timeView.updateView(start: Self.formatTime(start), end: Self.formatTime(end))
+    }
+
+    private static func formatTime(_ iso: String?) -> String? {
+        guard let iso = iso, !iso.isEmpty else { return nil }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = parser.date(from: iso) else { return iso }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
     func configureCourseView(name: String?, type: String?, room: String?, teacher: String?) {

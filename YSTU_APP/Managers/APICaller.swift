@@ -9,7 +9,8 @@
 import Foundation
 
 struct Constants {
-    static let API_KEY = "ЦПИ-11"
+    static let defaultGroup = "ЦПИ-11"
+    static let selectedGroupKey = "selectedGroup"
     static let baseURL = "https://gg-api.ystuty.ru/s"
 }
 
@@ -19,9 +20,15 @@ enum APIError: Error {
 
 class APICaller {
     static let shared = APICaller()
-    
+
+    var selectedGroup: String {
+        get { UserDefaults.standard.string(forKey: Constants.selectedGroupKey) ?? Constants.defaultGroup }
+        set { UserDefaults.standard.set(newValue, forKey: Constants.selectedGroupKey) }
+    }
+
     func getSchedule(for date: Date, completion: @escaping (Result<[Lesson], Error>) -> Void) {
-        guard let url = URL(string: "\(Constants.baseURL)/schedule/v1/schedule/group/\(Constants.API_KEY)") else {
+        let group = selectedGroup.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? selectedGroup
+        guard let url = URL(string: "\(Constants.baseURL)/schedule/v1/schedule/group/\(group)") else {
             completion(.failure(APIError.failedToGetData))
             return
         }
@@ -37,12 +44,6 @@ class APICaller {
                 print("No data received")
                 completion(.failure(APIError.failedToGetData))
                 return
-            }
-            
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("Raw JSON response: \(jsonString)")
-            } else {
-                print("Failed to convert data to string")
             }
             
             do {

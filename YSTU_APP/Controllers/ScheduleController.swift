@@ -22,6 +22,7 @@ final class ScheduleController: BaseController {
     override func viewDidLoad() {
         super.viewDidLoad()
         navBar.delegate = self
+        getSchedule(for: Date())
 //        getGruopList()
     }
     
@@ -191,7 +192,7 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
         let lesson = lessons[indexPath.row] // Исправлено с indexPath.section на indexPath.row
 //        print("Configuring cell with lesson: \(lesson)")
         cell.configureTimeView(start: lesson.startAt ?? "", end: lesson.endAt ?? "")
-        cell.configureCourseView(name: lesson.lessonName ?? "", type: "Лекция", room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
+        cell.configureCourseView(name: lesson.lessonName ?? "", type: lesson.isLecture == true ? "Лекция" : "Занятие", room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
         
         return cell
     }
@@ -209,6 +210,10 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
 extension ScheduleController: ScheduleNavBarDelegate {
     func didSelectDay(_ date: Date) {
         self.getSchedule(for: date)
+    }
+
+    func didSelectGroup(_ group: String) {
+        self.getSchedule(for: navBar.selectedDate)
     }
 }
 
