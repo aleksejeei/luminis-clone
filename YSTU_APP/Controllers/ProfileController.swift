@@ -229,7 +229,7 @@ final class ProfileController: BaseController {
                     self?.renderState()
                 case .failure(let error):
                     if let server = error as? ServerError {
-                        if server.code == 401 || server.code == 403 {
+                        if server.code == 400 || server.code == 401 || server.code == 403 {
                             self?.showError("Неверный логин или пароль")
                         } else {
                             let text = server.message.isEmpty ? "Ошибка входа" : server.message

@@ -67,6 +67,7 @@ final class AccountManager {
         var request = URLRequest(url: components.url!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Constants.oauthOrigin, forHTTPHeaderField: "Origin")
         request.httpBody = try? JSONEncoder().encode(["username": login, "password": password])
 
         URLSession.shared.dataTask(with: request) { data, response, error in
@@ -106,6 +107,7 @@ final class AccountManager {
         var request = URLRequest(url: URL(string: "\(Constants.oauthURL)/logout")!)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue(Constants.oauthOrigin, forHTTPHeaderField: "Origin")
 
         URLSession.shared.dataTask(with: request) { [weak self] _, _, _ in
             self?.tokens = nil
@@ -164,6 +166,7 @@ final class AccountManager {
 
         var request = URLRequest(url: components.url!)
         request.httpMethod = "POST"
+        request.setValue(Constants.oauthOrigin, forHTTPHeaderField: "Origin")
 
         URLSession.shared.dataTask(with: request) { data, response, error in
             var newToken: AuthTokenResponse?
@@ -205,6 +208,9 @@ final class AccountManager {
 
             var request = URLRequest(url: url)
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            if url.host == "oauth.ystuty.ru" {
+                request.setValue(Constants.oauthOrigin, forHTTPHeaderField: "Origin")
+            }
 
             URLSession.shared.dataTask(with: request) { data, response, error in
                 guard let data = data, error == nil else {
