@@ -62,7 +62,7 @@ final class MarksController: BaseController {
 
     private let loginButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Войти в профиль", for: .normal)
+        button.setTitle("Sign in", for: .normal)
         button.titleLabel?.font = .Montserrat.SemiBold.size(of: 15)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = AccentColors.blueColor
@@ -83,7 +83,7 @@ final class MarksController: BaseController {
         guard AccountManager.shared.isAuthorized else {
             marks = []
             marksTable.reloadData()
-            showMessage("Войдите в профиль,\nчтобы увидеть оценки", showLogin: true)
+            showMessage("Sign in to your profile\nto see your marks", showLogin: true)
             return
         }
         fetchMarks()
@@ -103,15 +103,15 @@ final class MarksController: BaseController {
                     self?.updateAverage()
                     self?.marksTable.reloadData()
                     if marks.isEmpty {
-                        self?.showMessage("Оценок пока нет", showLogin: false)
+                        self?.showMessage("No marks yet", showLogin: false)
                     }
                 case .failure(let error):
                     self?.marks = []
                     self?.marksTable.reloadData()
                     if (error as? AuthError) == .notAuthorized {
-                        self?.showMessage("Сессия истекла.\nВойдите заново", showLogin: true)
+                        self?.showMessage("Session expired.\nPlease sign in again", showLogin: true)
                     } else {
-                        self?.showMessage("Не удалось загрузить оценки", showLogin: false)
+                        self?.showMessage("Failed to load marks", showLogin: false)
                     }
                 }
             }
@@ -131,9 +131,9 @@ final class MarksController: BaseController {
 
         for semester in semesters {
             let button = UIButton(type: .system)
-            button.setTitle("\(semester) семестр", for: .normal)
+            button.setTitle("Semester \(semester)", for: .normal)
             button.titleLabel?.font = .Montserrat.Medium.size(of: 13)
-            button.layer.cornerRadius = 14
+            button.layer.cornerRadius = 16
             button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
             button.tag = semester
             button.addTarget(self, action: #selector(semesterTapped(_:)), for: .touchUpInside)
@@ -168,7 +168,7 @@ final class MarksController: BaseController {
             averageLabel.text = nil
         } else {
             let avg = values.reduce(0, +) / Double(values.count)
-            averageLabel.text = String(format: "Средний балл: %.2f", avg)
+            averageLabel.text = String(format: "Average grade: %.2f", avg)
         }
     }
 

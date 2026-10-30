@@ -25,7 +25,7 @@ final class ProfileController: BaseController {
         let label = UILabel()
         label.font = .Montserrat.Bold.size(of: 20)
         label.textColor = AccentColors.ordinaryTextColor
-        label.text = "Вход в аккаунт"
+        label.text = "Sign in"
         label.textAlignment = .center
         return label
     }()
@@ -34,14 +34,14 @@ final class ProfileController: BaseController {
         let label = UILabel()
         label.font = .Montserrat.Medium.size(of: 13)
         label.textColor = AccentColors.normalColor
-        label.text = "Логин и пароль от lk.ystu.ru"
+        label.text = "Your lk.ystu.ru credentials"
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
     }()
 
     private lazy var loginField: UITextField = {
-        let field = makeField(placeholder: "Логин", secure: false)
+        let field = makeField(placeholder: "Login", secure: false)
         field.autocapitalizationType = .none
         field.autocorrectionType = .no
         field.returnKeyType = .next
@@ -49,7 +49,7 @@ final class ProfileController: BaseController {
     }()
 
     private lazy var passwordField: UITextField = {
-        let field = makeField(placeholder: "Пароль", secure: true)
+        let field = makeField(placeholder: "Password", secure: true)
         field.returnKeyType = .go
         return field
     }()
@@ -72,7 +72,7 @@ final class ProfileController: BaseController {
 
     private let signInButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Войти", for: .normal)
+        button.setTitle("Sign in", for: .normal)
         button.titleLabel?.font = .Montserrat.SemiBold.size(of: 16)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = AccentColors.blueColor
@@ -144,7 +144,7 @@ final class ProfileController: BaseController {
 
     private let logoutButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Выйти", for: .normal)
+        button.setTitle("Sign out", for: .normal)
         button.titleLabel?.font = .Montserrat.SemiBold.size(of: 15)
         button.setTitleColor(.systemRed, for: .normal)
         button.backgroundColor = AccentColors.interfaceColor
@@ -208,7 +208,7 @@ final class ProfileController: BaseController {
     @objc private func signInTapped() {
         guard let login = loginField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !login.isEmpty,
               let password = passwordField.text, !password.isEmpty else {
-            showError("Введите логин и пароль")
+            showError("Enter your login and password")
             return
         }
 
@@ -230,15 +230,15 @@ final class ProfileController: BaseController {
                 case .failure(let error):
                     if let server = error as? ServerError {
                         if server.code == 400 || server.code == 401 || server.code == 403 {
-                            self?.showError("Неверный логин или пароль")
+                            self?.showError("Invalid login or password")
                         } else {
-                            let text = server.message.isEmpty ? "Ошибка входа" : server.message
-                            self?.showError("\(text) (код \(server.code))")
+                            let text = server.message.isEmpty ? "Sign in failed" : server.message
+                            self?.showError("\(text) (code \(server.code))")
                         }
                     } else if (error as? AuthError) == .invalidCredentials {
-                        self?.showError("Неверный логин или пароль")
+                        self?.showError("Invalid login or password")
                     } else {
-                        self?.showError("Ошибка сети. Попробуйте позже")
+                        self?.showError("Network error. Try again later")
                     }
                 }
             }
@@ -308,18 +308,18 @@ final class ProfileController: BaseController {
         infoCard.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
         var rows: [(String, String)] = []
-        if let course = details.course { rows.append(("Курс", "\(course)")) }
+        if let course = details.course { rows.append(("Course", "\(course)")) }
         if let financing = details.sourceFinancingStr, !financing.isEmpty {
-            rows.append(("Финансирование", financing))
+            rows.append(("Funding", financing))
         }
         if let book = details.recordBook, !book.isEmpty {
-            rows.append(("Зачётная книжка", book))
+            rows.append(("Record book", book))
         }
         if let email = details.man?.email, !email.isEmpty {
             rows.append(("Email", email))
         }
         if let phone = details.man?.telephone, !phone.isEmpty {
-            rows.append(("Телефон", phone))
+            rows.append(("Phone", phone))
         }
 
         for (index, row) in rows.enumerated() {
@@ -330,8 +330,8 @@ final class ProfileController: BaseController {
         if let course = details.course, let financing = details.sourceFinancingStr {
             let group = groupLabel.text ?? ""
             groupLabel.text = group.isEmpty
-                ? "\(course) курс • \(financing)"
-                : "\(group) • \(course) курс • \(financing)"
+                ? "Course \(course) • \(financing)"
+                : "\(group) • Course \(course) • \(financing)"
         }
     }
 

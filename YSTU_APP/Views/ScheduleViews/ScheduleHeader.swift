@@ -10,11 +10,11 @@ final class ScheduleHeader: UIView {
         return label
     }()
     
-    let courceLabel: UILabel = {
+    let courseLabel: UILabel = {
         let label = UILabel()
         label.font = .Montserrat.Medium.size(of: 14)
         label.textColor = AccentColors.normalColor
-        label.text = "Cource"
+        label.text = "Course"
         return label
     }()
     
@@ -32,7 +32,7 @@ final class ScheduleHeader: UIView {
 extension ScheduleHeader {
     private func configure() {
         setupTimeLabel()
-        setupCourceLabel()
+        setupCourseLabel()
     }
     
     func setupTimeLabel() {
@@ -44,12 +44,12 @@ extension ScheduleHeader {
         ])
     }
     
-    func setupCourceLabel() {
-        addSubview(courceLabel)
-        courceLabel.translatesAutoresizingMaskIntoConstraints = false
+    func setupCourseLabel() {
+        addSubview(courseLabel)
+        courseLabel.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            courceLabel.leadingAnchor.constraint(equalTo: timeLabel.trailingAnchor, constant: 34 + 4),
-            courceLabel.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -6)
+            courseLabel.leadingAnchor.constraint(equalTo: timeLabel.trailingAnchor, constant: 34 + 4),
+            courseLabel.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -6)
         ])
     }
 }

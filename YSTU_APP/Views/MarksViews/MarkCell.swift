@@ -18,7 +18,7 @@ final class MarkCell: UITableViewCell {
 
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = .Montserrat.SemiBold.size(of: 15)
+        label.font = .Montserrat.SemiBold.size(of: 16)
         label.textColor = AccentColors.ordinaryTextColor
         label.numberOfLines = 0
         return label
@@ -65,7 +65,7 @@ final class MarkCell: UITableViewCell {
         if let control = mark.controlTypeName, !control.isEmpty { infoParts.append(control) }
         if let years = mark.years, !years.isEmpty { infoParts.append(years) }
         if let credits = mark.creditUnit, credits > 0 {
-            infoParts.append("ЗЕ \(Self.formatNumber(credits))")
+            infoParts.append("\(Self.formatNumber(credits)) cr.")
         }
         infoLabel.text = infoParts.joined(separator: " • ")
 
@@ -84,7 +84,7 @@ final class MarkCell: UITableViewCell {
         guard mark.markName != nil else { return AccentColors.normalColor.withAlphaComponent(0.2) }
         guard let value = mark.mark else { return AccentColors.normalColor }
         switch value {
-        case ..<1: return .systemGreen      // зачёт
+        case ..<1: return .systemGreen      // pass
         case ..<2.5: return .systemRed      // 2
         case ..<3.5: return .systemBlue     // 3
         case ..<4.5: return .systemYellow   // 4
@@ -130,12 +130,12 @@ final class MarkCell: UITableViewCell {
 
             nameLabel.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 16),
             nameLabel.trailingAnchor.constraint(equalTo: badgeView.leadingAnchor, constant: -12),
-            nameLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 14),
+            nameLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 16),
 
             infoLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             infoLabel.trailingAnchor.constraint(equalTo: nameLabel.trailingAnchor),
-            infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
-            infoLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -14)
+            infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
+            infoLabel.bottomAnchor.constraint(equalTo: cardView.bottomAnchor, constant: -16)
         ])
 
         setShadow(cardView)
