@@ -40,10 +40,7 @@ class TimeView: UIView {
     }
     
     func updateView(start: String?, end: String?) {
-        guard let start = start else { return }
         startTimeLabel.text = start
-        
-        guard let end = end else { return }
         endTimeLabel.text = end
     }
     

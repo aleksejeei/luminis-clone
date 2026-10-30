@@ -34,7 +34,6 @@ final class ScheduleController: BaseController {
         super.viewDidAppear(animated)
         navBar.scrollToCurrentWeek()
         navBar.selectToday()
-        addRightBorder()
     }
     
     override func viewDidLayoutSubviews() {
@@ -52,38 +51,6 @@ final class ScheduleController: BaseController {
         ])
     }
     
-    func addRightBorder() {
-//        scheduleFeedTable.layer.sublayers?.forEach {
-//                if $0.backgroundColor == AccentColors.normalColor.withAlphaComponent(0.2).cgColor {
-//                    $0.removeFromSuperlayer()
-//                }
-//            }
-        
-        let rightBorder = CALayer()
-        let borderX: CGFloat = 86 - 2 // Позиция по X
-        let borderY: CGFloat = 10 + (scheduleFeedTable.tableHeaderView?.frame.height ?? 0) // Позиция по Y
-        let borderHeight = scheduleFeedTable.contentSize.height - borderY - 48 // Высота границы (same like bottom anchor)
-
-        
-        rightBorder.backgroundColor = AccentColors.normalColor.withAlphaComponent(0.2).cgColor
-        rightBorder.frame = CGRect(x: borderX, y: borderY, width: 2, height: borderHeight)
-        scheduleFeedTable.layer.addSublayer(rightBorder)
-
-        // Создаем верхнюю точку
-        let topDot = CALayer()
-        topDot.backgroundColor = AccentColors.normalColor.cgColor
-        topDot.cornerRadius = 3 // Делаем круглую точку
-        topDot.frame = CGRect(x: rightBorder.frame.origin.x - 2, y: rightBorder.frame.origin.y - 3, width: 6, height: 6)
-        scheduleFeedTable.layer.addSublayer(topDot)
-
-        // Создаем нижнюю точку
-        let bottomDot = CALayer()
-        bottomDot.backgroundColor = AccentColors.normalColor.cgColor
-        bottomDot.cornerRadius = 3 // Делаем круглую точку
-        bottomDot.frame = CGRect(x: rightBorder.frame.origin.x - 2, y: rightBorder.frame.origin.y + rightBorder.frame.height - 3, width: 6, height: 6)
-        scheduleFeedTable.layer.addSublayer(bottomDot)
-    }
-    
     private func getSchedule(for date: Date) {
         APICaller.shared.getSchedule(for: date) { result in
             switch result {
@@ -92,32 +59,23 @@ final class ScheduleController: BaseController {
                 self.updateUI(with: lessons)
             case .failure(let error):
                 print("Error: \(error)")
+                self.updateUI(with: [], message: "Failed to load schedule")
             }
         }
     }
 
-    private func updateUI(with lessons: [Lesson]) {
+    private func updateUI(with lessons: [Lesson], message: String = "No lessons for this day") {
         print("Updating UI with \(lessons.count) lessons")
         self.lessons = lessons
         DispatchQueue.main.async {
             if lessons.isEmpty {
                 // Показываем сообщение, что расписание пустое
-                if let sublayers = self.scheduleFeedTable.layer.sublayers {
-                    for sublayer in sublayers {
-                        sublayer.isHidden = true
-                    }
-                }
                 let label = UILabel(frame: self.scheduleFeedTable.bounds)
-                label.text = "No lessons for this day"
+                label.text = message
                 label.textAlignment = .center
                 label.textColor = .gray
                 self.scheduleFeedTable.backgroundView = label
             } else {
-                if let sublayers = self.scheduleFeedTable.layer.sublayers {
-                    for sublayer in sublayers {
-                        sublayer.isHidden = false
-                    }
-                }
                 self.scheduleFeedTable.backgroundView = nil
             }
             self.scheduleFeedTable.reloadData()
@@ -193,6 +151,7 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
 //        print("Configuring cell with lesson: \(lesson)")
         cell.configureTimeView(start: lesson.startAt ?? "", end: lesson.endAt ?? "")
         cell.configureCourseView(name: lesson.lessonName ?? "", type: lesson.isLecture == true ? "Лекция" : "Занятие", room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
+        cell.setRailEnds(isFirst: indexPath.row == 0, isLast: indexPath.row == lessons.count - 1)
         
         return cell
     }

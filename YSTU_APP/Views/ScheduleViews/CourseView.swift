@@ -74,16 +74,9 @@ class CourseView: UIView {
     }
     
     func updateView(name: String?, type: String?, room: String?, teacher: String?) {
-        guard let name = name else { return }
         courseNameLabel.text = name
-        
-        guard let type = type else { return }
         courceTypeLabel.text = type
-        
-        guard let room = room else { return }
         roomLabel.text = room
-        
-        guard let teacher = teacher else { return }
         teacherNameLabel.text = teacher
     }
 }
