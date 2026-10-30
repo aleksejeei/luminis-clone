@@ -14,6 +14,11 @@ final class ScheduleController: BaseController {
     private var currentDate = Date()
     private var pendingSnapshot: UIView?
     private var pendingDirection: CGFloat = 0
+    private var panInProgress = false
+    private var panTriggered = false
+    private var panCommitted = false
+    private var incomingReady = false
+    private var dateBeforePan = Date()
     
     let scheduleFeedTable: UITableView = {
         let table = UITableView(frame: .zero, style: .grouped)
@@ -105,7 +110,17 @@ final class ScheduleController: BaseController {
             }
             self.scheduleFeedTable.reloadData()
             self.scheduleFeedTable.layoutIfNeeded()
-            self.playTransition()
+
+            if self.panCommitted || (self.panInProgress && self.panTriggered) {
+                self.incomingReady = true
+                if self.panCommitted {
+                    let width = max(self.view.bounds.width, 1)
+                    self.scheduleFeedTable.transform = CGAffineTransform(translationX: width * self.pendingDirection, y: 0)
+                    self.animateTableToIdentity()
+                }
+            } else {
+                self.playTransition()
+            }
         }
     }
 
@@ -178,19 +193,102 @@ final class ScheduleController: BaseController {
         scheduleFeedTable.showsVerticalScrollIndicator = false
         scheduleFeedTable.showsHorizontalScrollIndicator = false
 
-        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(daySwiped(_:)))
-        swipeLeft.direction = .left
-        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(daySwiped(_:)))
-        swipeRight.direction = .right
-        scheduleFeedTable.addGestureRecognizer(swipeLeft)
-        scheduleFeedTable.addGestureRecognizer(swipeRight)
+        let pan = UIPanGestureRecognizer(target: self, action: #selector(dayPanned(_:)))
+        pan.delegate = self
+        scheduleFeedTable.addGestureRecognizer(pan)
     }
 
-    @objc private func daySwiped(_ gesture: UISwipeGestureRecognizer) {
+    @objc private func dayPanned(_ gesture: UIPanGestureRecognizer) {
+        let tx = gesture.translation(in: view).x
+        let width = max(view.bounds.width, 1)
+
+        switch gesture.state {
+        case .began:
+            captureSnapshot()
+            scheduleFeedTable.alpha = 0
+            panInProgress = true
+            panTriggered = false
+            panCommitted = false
+            incomingReady = false
+            dateBeforePan = currentDate
+
+        case .changed:
+            guard panInProgress, let snapshot = pendingSnapshot else { return }
+            pendingDirection = tx < 0 ? 1 : -1
+            snapshot.transform = CGAffineTransform(translationX: tx, y: 0)
+
+            if !panTriggered, abs(tx) > width * 0.2 {
+                panTriggered = true
+                advanceDay(by: pendingDirection)
+            }
+
+            if incomingReady {
+                scheduleFeedTable.alpha = 1
+                scheduleFeedTable.transform = CGAffineTransform(translationX: tx + pendingDirection * width, y: 0)
+            }
+
+        case .ended, .cancelled:
+            guard panInProgress else { return }
+            panInProgress = false
+            let velocity = abs(gesture.velocity(in: view).x)
+            let commit = panTriggered && (abs(tx) > width * 0.3 || velocity > 500)
+
+            if commit {
+                panCommitted = true
+                commitInteractive()
+            } else {
+                cancelInteractive()
+            }
+
+        default:
+            break
+        }
+    }
+
+    private func advanceDay(by direction: CGFloat) {
         var components = DateComponents()
-        components.day = gesture.direction == .left ? 1 : -1
-        guard let next = Calendar.current.date(byAdding: components, to: navBar.selectedDate) else { return }
+        components.day = Int(direction)
+        guard let next = Calendar.current.date(byAdding: components, to: currentDate) else { return }
         navBar.selectDate(next)
+    }
+
+    private func commitInteractive() {
+        let width = max(view.bounds.width, 1)
+        if let snapshot = pendingSnapshot {
+            UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut, animations: {
+                snapshot.transform = CGAffineTransform(translationX: -width * self.pendingDirection, y: 0)
+                snapshot.alpha = 0.4
+            }, completion: { _ in
+                snapshot.removeFromSuperview()
+            })
+        }
+        if incomingReady {
+            animateTableToIdentity()
+        }
+    }
+
+    private func cancelInteractive() {
+        panCommitted = false
+        if panTriggered {
+            navBar.selectDate(dateBeforePan)
+        }
+        scheduleFeedTable.transform = .identity
+        scheduleFeedTable.alpha = 1
+        if let snapshot = pendingSnapshot {
+            pendingSnapshot = nil
+            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut, animations: {
+                snapshot.transform = .identity
+            }, completion: { _ in
+                snapshot.removeFromSuperview()
+            })
+        }
+    }
+
+    private func animateTableToIdentity() {
+        scheduleFeedTable.alpha = 1
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0.3, options: .curveEaseOut, animations: {
+            self.scheduleFeedTable.transform = .identity
+        }, completion: nil)
     }
 
     static func lessonTypeName(_ type: Int?) -> String {
@@ -239,9 +337,17 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
 }
 
 
+extension ScheduleController: UIGestureRecognizerDelegate {
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
+        let t = pan.translation(in: view)
+        return abs(t.x) > abs(t.y) && abs(t.x) > 8
+    }
+}
+
 extension ScheduleController: ScheduleNavBarDelegate {
     func didSelectDay(_ date: Date) {
-        if date != currentDate {
+        if date != currentDate, !panInProgress, !panCommitted {
             pendingDirection = date > currentDate ? 1 : -1
             captureSnapshot()
         }
