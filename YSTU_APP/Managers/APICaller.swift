@@ -14,7 +14,7 @@ struct Constants {
     static let baseURL = "https://gg-api.ystuty.ru/s"
     static let oauthURL = "https://oauth.ystuty.ru"
     static let oauthClientID = "x-id"
-    static let oauthScope = "general:user:personal,general:mark:person"
+    static let oauthScope = "general:user:personal,general:mark:personal"
 }
 
 enum APIError: Error {
