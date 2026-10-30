@@ -56,13 +56,20 @@ final class TabBarController: UITabBarController, UITabBarControllerDelegate {
     }
     
     private func getImageView(forIndex index: Int) -> UIImageView? {
-        guard let tabBarButton = tabBar.subviews[index + 1] as? UIControl else { return nil }
-        
-        for subview in tabBarButton.subviews {
+        let buttons = tabBar.subviews
+            .compactMap { $0 as? UIControl }
+            .sorted { $0.frame.minX < $1.frame.minX }
+        guard index < buttons.count else { return nil }
+
+        return findImageView(in: buttons[index])
+    }
+
+    private func findImageView(in view: UIView) -> UIImageView? {
+        for subview in view.subviews {
             if let imageView = subview as? UIImageView { return imageView }
+            if let found = findImageView(in: subview) { return found }
         }
         return nil
-        
     }
 }
 
