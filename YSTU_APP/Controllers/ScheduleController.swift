@@ -10,29 +10,20 @@ import UIKit
 final class ScheduleController: BaseController {
     
     private let navBar = ScheduleNavBar()
-    private var lessons: [Lesson] = []
-    private var currentDate = Date()
-    private var pendingSnapshot: UIView?
-    private var pendingDirection: CGFloat = 0
-    private var panInProgress = false
-    private var panTriggered = false
-    private var panCommitted = false
-    private var incomingReady = false
-    private var dateBeforePan = Date()
+    private var currentDate = ScheduleNavBar.scheduleStartDate()
     
-    let scheduleFeedTable: UITableView = {
-        let table = UITableView(frame: .zero, style: .grouped)
-        table.register(ScheduleTableViewCell.self, forCellReuseIdentifier: ScheduleTableViewCell.identifier)
-        table.backgroundColor = AccentColors.bgColor
-        return table
+    private lazy var pager: UIPageViewController = {
+        let pager = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal)
+        pager.dataSource = self
+        pager.delegate = self
+        return pager
     }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         navBar.delegate = self
         setupNavBarGlass()
-        getSchedule(for: Date())
-//        getGruopList()
+        pager.setViewControllers([DayScheduleController(date: currentDate)], direction: .forward, animated: false)
     }
 
     private func setupNavBarGlass() {
@@ -58,8 +49,7 @@ final class ScheduleController: BaseController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        navBar.scrollToCurrentWeek()
-        navBar.selectToday()
+        navBar.selectDate(currentDate)
     }
     
     override func viewDidLayoutSubviews() {
@@ -81,72 +71,6 @@ final class ScheduleController: BaseController {
         ])
     }
     
-    private func getSchedule(for date: Date) {
-        APICaller.shared.getSchedule(for: date) { result in
-            switch result {
-            case .success(let lessons):
-                // Обновляем UI с полученными уроками
-                self.updateUI(with: lessons)
-            case .failure(let error):
-                print("Error: \(error)")
-                self.updateUI(with: [], message: "Failed to load schedule")
-            }
-        }
-    }
-
-    private func updateUI(with lessons: [Lesson], message: String = "No lessons for this day") {
-        print("Updating UI with \(lessons.count) lessons")
-        self.lessons = lessons
-        DispatchQueue.main.async {
-            if lessons.isEmpty {
-                // Показываем сообщение, что расписание пустое
-                let label = UILabel(frame: self.scheduleFeedTable.bounds)
-                label.text = message
-                label.textAlignment = .center
-                label.textColor = .gray
-                self.scheduleFeedTable.backgroundView = label
-            } else {
-                self.scheduleFeedTable.backgroundView = nil
-            }
-            self.scheduleFeedTable.reloadData()
-            self.scheduleFeedTable.layoutIfNeeded()
-
-            if self.panCommitted || (self.panInProgress && self.panTriggered) {
-                self.incomingReady = true
-                if self.panCommitted {
-                    let width = max(self.view.bounds.width, 1)
-                    self.scheduleFeedTable.transform = CGAffineTransform(translationX: width * self.pendingDirection, y: 0)
-                    self.animateTableToIdentity()
-                }
-            } else {
-                self.playTransition()
-            }
-        }
-    }
-
-    private func captureSnapshot() {
-        pendingSnapshot?.removeFromSuperview()
-        guard let snapshot = scheduleFeedTable.snapshotView(afterScreenUpdates: false) else { return }
-        snapshot.frame = scheduleFeedTable.frame
-        view.insertSubview(snapshot, aboveSubview: scheduleFeedTable)
-        pendingSnapshot = snapshot
-    }
-
-    private func playTransition() {
-        guard let snapshot = pendingSnapshot else { return }
-        pendingSnapshot = nil
-        let width = max(scheduleFeedTable.bounds.width, 1)
-
-        scheduleFeedTable.transform = CGAffineTransform(translationX: width * pendingDirection, y: 0)
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseOut, animations: {
-            snapshot.transform = CGAffineTransform(translationX: -width * self.pendingDirection, y: 0)
-            snapshot.alpha = 0.4
-            self.scheduleFeedTable.transform = .identity
-        }, completion: { _ in
-            snapshot.removeFromSuperview()
-        })
-    }
-    
     private func getGruopList() {
         APICaller.shared.getGroupsList { results in
             switch results {
@@ -158,140 +82,26 @@ final class ScheduleController: BaseController {
         }
     }
     
-    private func addHeaderView() {
-        let header = ScheduleHeader(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 50))
-        scheduleFeedTable.tableHeaderView = header
-    }
-    
     override func addViews() {
         super.addViews()
-        view.addSubview(scheduleFeedTable)
+        addChild(pager)
+        view.addSubview(pager.view)
+        pager.didMove(toParent: self)
         view.addSubview(navBar)
     }
     
     override func layoutViews() {
         super.layoutViews()
-        addHeaderView()
-        scheduleFeedTable.translatesAutoresizingMaskIntoConstraints = false
-        scheduleFeedTable.contentInsetAdjustmentBehavior = .never
+        pager.view.translatesAutoresizingMaskIntoConstraints = false
          
         NSLayoutConstraint.activate([
-            scheduleFeedTable.topAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -12),
-            scheduleFeedTable.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scheduleFeedTable.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scheduleFeedTable.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -48)
+            pager.view.topAnchor.constraint(equalTo: navBar.bottomAnchor, constant: -12),
+            pager.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pager.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            pager.view.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -48)
         ])
     }
     
-    override func configure() {
-        super.configure()
-        scheduleFeedTable.delegate = self
-        scheduleFeedTable.dataSource = self
-        scheduleFeedTable.separatorStyle = .none
-        scheduleFeedTable.estimatedRowHeight = 137 // Примерное значение для улучшения производительности
-        scheduleFeedTable.rowHeight = UITableView.automaticDimension
-        scheduleFeedTable.showsVerticalScrollIndicator = false
-        scheduleFeedTable.showsHorizontalScrollIndicator = false
-
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(dayPanned(_:)))
-        pan.delegate = self
-        scheduleFeedTable.addGestureRecognizer(pan)
-        scheduleFeedTable.panGestureRecognizer.require(toFail: pan)
-    }
-
-    @objc private func dayPanned(_ gesture: UIPanGestureRecognizer) {
-        let tx = gesture.translation(in: view).x
-        let width = max(view.bounds.width, 1)
-
-        switch gesture.state {
-        case .began:
-            captureSnapshot()
-            scheduleFeedTable.alpha = 0
-            panInProgress = true
-            panTriggered = false
-            panCommitted = false
-            incomingReady = false
-            dateBeforePan = currentDate
-
-        case .changed:
-            guard panInProgress, let snapshot = pendingSnapshot else { return }
-            pendingDirection = tx < 0 ? 1 : -1
-            snapshot.transform = CGAffineTransform(translationX: tx, y: 0)
-
-            if !panTriggered, abs(tx) > width * 0.2 {
-                panTriggered = true
-                advanceDay(by: pendingDirection)
-            }
-
-            if incomingReady {
-                scheduleFeedTable.alpha = 1
-                scheduleFeedTable.transform = CGAffineTransform(translationX: tx + pendingDirection * width, y: 0)
-            }
-
-        case .ended, .cancelled:
-            guard panInProgress else { return }
-            panInProgress = false
-            let velocity = abs(gesture.velocity(in: view).x)
-            let commit = panTriggered && (abs(tx) > width * 0.25 || velocity > 350)
-
-            if commit {
-                panCommitted = true
-                commitInteractive()
-            } else {
-                cancelInteractive()
-            }
-
-        default:
-            break
-        }
-    }
-
-    private func advanceDay(by direction: CGFloat) {
-        var components = DateComponents()
-        components.day = Int(direction)
-        guard let next = Calendar.current.date(byAdding: components, to: currentDate) else { return }
-        navBar.selectDate(next)
-    }
-
-    private func commitInteractive() {
-        let width = max(view.bounds.width, 1)
-        if let snapshot = pendingSnapshot {
-            UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseOut, animations: {
-                snapshot.transform = CGAffineTransform(translationX: -width * self.pendingDirection, y: 0)
-                snapshot.alpha = 0.4
-            }, completion: { _ in
-                snapshot.removeFromSuperview()
-            })
-        }
-        if incomingReady {
-            animateTableToIdentity()
-        }
-    }
-
-    private func cancelInteractive() {
-        panCommitted = false
-        if panTriggered {
-            navBar.selectDate(dateBeforePan)
-        }
-        scheduleFeedTable.transform = .identity
-        scheduleFeedTable.alpha = 1
-        if let snapshot = pendingSnapshot {
-            pendingSnapshot = nil
-            UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseOut, animations: {
-                snapshot.transform = .identity
-            }, completion: { _ in
-                snapshot.removeFromSuperview()
-            })
-        }
-    }
-
-    private func animateTableToIdentity() {
-        scheduleFeedTable.alpha = 1
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.85, initialSpringVelocity: 0.3, options: .curveEaseOut, animations: {
-            self.scheduleFeedTable.transform = .identity
-        }, completion: nil)
-    }
-
     static func lessonTypeName(_ type: Int?) -> String {
         switch type {
         case 2: return "Lecture"
@@ -303,26 +113,140 @@ final class ScheduleController: BaseController {
     }
 }
 
-extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
+extension ScheduleController: UIPageViewControllerDataSource, UIPageViewControllerDelegate {
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+        guard let day = viewController as? DayScheduleController,
+              let previous = Calendar.current.date(byAdding: .day, value: -1, to: day.date) else { return nil }
+        return DayScheduleController(date: previous)
+    }
+    
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+        guard let day = viewController as? DayScheduleController,
+              let next = Calendar.current.date(byAdding: .day, value: 1, to: day.date) else { return nil }
+        return DayScheduleController(date: next)
+    }
+    
+    func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+        guard completed,
+              let day = pageViewController.viewControllers?.first as? DayScheduleController else { return }
+        currentDate = day.date
+        navBar.selectDate(day.date)
+    }
+}
+
+extension ScheduleController: ScheduleNavBarDelegate {
+    func didSelectDay(_ date: Date) {
+        guard !Calendar.current.isDate(date, inSameDayAs: currentDate) else { return }
+        let direction: UIPageViewController.NavigationDirection = date > currentDate ? .forward : .reverse
+        currentDate = date
+        pager.setViewControllers([DayScheduleController(date: date)], direction: direction, animated: true)
+    }
+    
+    func didSelectGroup(_ group: String) {
+        pager.setViewControllers([DayScheduleController(date: currentDate)], direction: .forward, animated: false)
+    }
+}
+
+private final class DayScheduleController: UIViewController {
+    let date: Date
+    private var lessons: [Lesson] = []
+    private var headerInstalled = false
+    
+    private let table: UITableView = {
+        let table = UITableView(frame: .zero, style: .grouped)
+        table.register(ScheduleTableViewCell.self, forCellReuseIdentifier: ScheduleTableViewCell.identifier)
+        table.backgroundColor = AccentColors.bgColor
+        table.separatorStyle = .none
+        table.estimatedRowHeight = 137
+        table.rowHeight = UITableView.automaticDimension
+        table.showsVerticalScrollIndicator = false
+        table.showsHorizontalScrollIndicator = false
+        table.contentInsetAdjustmentBehavior = .never
+        return table
+    }()
+    
+    init(date: Date) {
+        self.date = date
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = AccentColors.bgColor
+        
+        view.addSubview(table)
+        table.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            table.topAnchor.constraint(equalTo: view.topAnchor),
+            table.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            table.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            table.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        
+        table.delegate = self
+        table.dataSource = self
+        
+        loadLessons()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if !headerInstalled, view.bounds.width > 0 {
+            headerInstalled = true
+            table.tableHeaderView = ScheduleHeader(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 50))
+        }
+    }
+    
+    private func loadLessons() {
+        APICaller.shared.getSchedule(for: date) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                var emptyMessage = "No lessons for this day"
+                switch result {
+                case .success(let lessons):
+                    self.lessons = lessons
+                case .failure(let error):
+                    print("Error: \(error)")
+                    self.lessons = []
+                    emptyMessage = "Failed to load schedule"
+                }
+                if self.lessons.isEmpty {
+                    let label = UILabel(frame: self.table.bounds)
+                    label.text = emptyMessage
+                    label.textAlignment = .center
+                    label.textColor = .gray
+                    self.table.backgroundView = label
+                } else {
+                    self.table.backgroundView = nil
+                }
+                self.table.reloadData()
+            }
+        }
+    }
+}
+
+extension DayScheduleController: UITableViewDelegate, UITableViewDataSource {
     
     func numberOfSections(in tableView: UITableView) -> Int {
-            return 1
-        }
+        return 1
+    }
 
-        func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-            return lessons.count // Количество строк равно количеству уроков
-        }
-    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return lessons.count
+    }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: ScheduleTableViewCell.identifier, for: indexPath) as? ScheduleTableViewCell else {
             return UITableViewCell()
         }
         
-        let lesson = lessons[indexPath.row] // Исправлено с indexPath.section на indexPath.row
-//        print("Configuring cell with lesson: \(lesson)")
+        let lesson = lessons[indexPath.row]
         cell.configureTimeView(start: lesson.startAt ?? "", end: lesson.endAt ?? "")
-        cell.configureCourseView(name: lesson.lessonName ?? "", type: Self.lessonTypeName(lesson.type), room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
+        cell.configureCourseView(name: lesson.lessonName ?? "", type: ScheduleController.lessonTypeName(lesson.type), room: lesson.auditoryName ?? "", teacher: lesson.teacherName ?? "")
         cell.setRailEnds(isFirst: indexPath.row == 0, isLast: indexPath.row == lessons.count - 1)
         
         return cell
@@ -333,31 +257,6 @@ extension ScheduleController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
-        return 16 // Создаст отступ перед секцией, тем самым увеличив расстояние между ячейками
+        return 16
     }
 }
-
-
-extension ScheduleController: UIGestureRecognizerDelegate {
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
-        let t = pan.translation(in: view)
-        return abs(t.x) > abs(t.y)
-    }
-}
-
-extension ScheduleController: ScheduleNavBarDelegate {
-    func didSelectDay(_ date: Date) {
-        if date != currentDate, !panInProgress, !panCommitted {
-            pendingDirection = date > currentDate ? 1 : -1
-            captureSnapshot()
-        }
-        currentDate = date
-        self.getSchedule(for: date)
-    }
-
-    func didSelectGroup(_ group: String) {
-        self.getSchedule(for: navBar.selectedDate)
-    }
-}
-

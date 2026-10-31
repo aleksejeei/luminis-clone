@@ -39,6 +39,13 @@ final class ScheduleNavBar: UIView {
     
     private var weeks = [Week]()
     
+    static func scheduleStartDate(for date: Date = Date()) -> Date {
+        let calendar = Calendar.current
+        // weekday 1 is Sunday regardless of the calendar's firstWeekday
+        guard calendar.component(.weekday, from: date) == 1 else { return date }
+        return calendar.date(byAdding: .day, value: 1, to: date) ?? date
+    }
+    
     let weekView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .horizontal
@@ -70,7 +77,7 @@ final class ScheduleNavBar: UIView {
     
     
     func scrollToCurrentWeek() {
-        if let currentWeekIndex = getCurrentWeekIndex() {
+        if let currentWeekIndex = getWeekIndex(for: Self.scheduleStartDate()) {
             let totalItems = self.weekView.numberOfItems(inSection: 0)
             if currentWeekIndex >= 0 && currentWeekIndex < totalItems {
                 let indexPath = IndexPath(item: currentWeekIndex, section: 0)
@@ -85,42 +92,45 @@ final class ScheduleNavBar: UIView {
     }
     
     func selectToday() {
-        guard let currentWeekIndex = getCurrentWeekIndex(),
-              let currentDayIndex = getCurrentDayIndexInWeek(currentWeekIndex) else {
+        let target = Self.scheduleStartDate()
+        guard let weekIndex = getWeekIndex(for: target),
+              let dayIndex = getDayIndex(in: weekIndex, for: target) else {
             return
         }
         
-        selectedWeekIndex = currentWeekIndex
-        selectedDayIndex = currentDayIndex
+        selectedWeekIndex = weekIndex
+        selectedDayIndex = dayIndex
         
         // Обновите текущую ячейку после прокрутки
         DispatchQueue.main.async {
             self.weekView.reloadData()
-            self.todayLabel.text = "Today"
-            self.currentDateLabel.text = self.setTodayDateToLabel()
+            self.updateDayLabels(target)
         }
     }
     
     
-    private func getCurrentWeekIndex() -> Int? {
-        let calendar = Calendar.current
-        // разница начала и конца
-        let components = calendar.dateComponents([.weekOfYear], from: baseDate, to: Date())
-        guard let weekIndex = components.weekOfYear else { return nil }
-        
-        return weekIndex
+    private func getWeekIndex(for date: Date) -> Int? {
+        Calendar.current.dateComponents([.weekOfYear], from: baseDate, to: date).weekOfYear
     }
     
-    private func getCurrentDayIndexInWeek(_ weekIndex: Int) -> Int? {
+    private func getDayIndex(in weekIndex: Int, for date: Date) -> Int? {
         let calendar = Calendar.current
-        let currentDate = Date()
         
-        guard let startDateOfWeek = calendar.date(byAdding: .weekOfYear, value: weekIndex, to: baseDate) else {
+        guard let startDateOfWeek = calendar.date(byAdding: .weekOfYear, value: weekIndex, to: baseDate),
+              let dayIndex = calendar.dateComponents([.day], from: startDateOfWeek, to: date).day,
+              dayIndex >= 0, dayIndex < 7 else {
             return nil
         }
         
-        let dayIndex = calendar.dateComponents([.day], from: startDateOfWeek, to: currentDate).day
-        return (dayIndex ?? 0) >= 0 && (dayIndex ?? 0) < 7 ? dayIndex : nil
+        return dayIndex
+    }
+    
+    private func getCurrentWeekIndex() -> Int? {
+        getWeekIndex(for: Date())
+    }
+    
+    private func getCurrentDayIndexInWeek(_ weekIndex: Int) -> Int? {
+        getDayIndex(in: weekIndex, for: Date())
     }
 
     
@@ -204,15 +214,6 @@ final class ScheduleNavBar: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
-    func setTodayDateToLabel() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MMM dd, yyyy"  // Формат даты: Apr 08, 2022
-        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
-
-        let date = Date()  // Текущая дата
-        return String(dateFormatter.string(from: date))
-    }
     
     let currentDateLabel: UILabel = {
         let label = UILabel()

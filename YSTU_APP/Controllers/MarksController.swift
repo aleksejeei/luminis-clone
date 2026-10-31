@@ -13,6 +13,13 @@ final class MarksController: BaseController {
     private var semesters: [Int] = []
     private var selectedSemester: Int?
 
+    private lazy var pager: UIPageViewController = {
+        let pager = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal)
+        pager.dataSource = self
+        pager.delegate = self
+        return pager
+    }()
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .Montserrat.Bold.size(of: 28)
@@ -39,15 +46,6 @@ final class MarksController: BaseController {
         stack.axis = .horizontal
         stack.spacing = 8
         return stack
-    }()
-
-    private let marksTable: UITableView = {
-        let table = UITableView(frame: .zero, style: .plain)
-        table.register(MarkCell.self, forCellReuseIdentifier: MarkCell.identifier)
-        table.backgroundColor = .clear
-        table.separatorStyle = .none
-        table.showsVerticalScrollIndicator = false
-        return table
     }()
 
     private let messageLabel: UILabel = {
@@ -82,7 +80,7 @@ final class MarksController: BaseController {
     private func reloadState() {
         guard AccountManager.shared.isAuthorized else {
             marks = []
-            marksTable.reloadData()
+            applySemesters()
             showMessage("Sign in to your profile\nto see your marks", showLogin: true)
             return
         }
@@ -101,13 +99,12 @@ final class MarksController: BaseController {
                     self?.marks = marks
                     self?.applySemesters()
                     self?.updateAverage()
-                    self?.marksTable.reloadData()
                     if marks.isEmpty {
                         self?.showMessage("No marks yet", showLogin: false)
                     }
                 case .failure(let error):
                     self?.marks = []
-                    self?.marksTable.reloadData()
+                    self?.applySemesters()
                     if (error as? AuthError) == .notAuthorized {
                         self?.showMessage("Session expired.\nPlease sign in again", showLogin: true)
                     } else {
@@ -124,6 +121,15 @@ final class MarksController: BaseController {
             selectedSemester = semesters.first
         }
         rebuildSemesterChips()
+        showCurrentSemester(animated: false)
+    }
+
+    private func showCurrentSemester(animated: Bool, direction: UIPageViewController.NavigationDirection = .forward) {
+        guard let selectedSemester else {
+            pager.setViewControllers(nil, direction: direction, animated: false)
+            return
+        }
+        pager.setViewControllers([SemesterMarksController(semester: selectedSemester, marks: marks)], direction: direction, animated: animated)
     }
 
     private func rebuildSemesterChips() {
@@ -151,15 +157,13 @@ final class MarksController: BaseController {
     }
 
     @objc private func semesterTapped(_ sender: UIButton) {
+        guard sender.tag != selectedSemester else { return }
+        let newIndex = semesters.firstIndex(of: sender.tag) ?? 0
+        let currentIndex = selectedSemester.flatMap { semesters.firstIndex(of: $0) } ?? 0
         selectedSemester = sender.tag
         updateSemesterChips()
         updateAverage()
-        marksTable.reloadData()
-    }
-
-    private func visibleMarks() -> [Mark] {
-        guard let selected = selectedSemester else { return marks }
-        return marks.filter { $0.semester == selected }
+        showCurrentSemester(animated: true, direction: newIndex > currentIndex ? .forward : .reverse)
     }
 
     private func updateAverage() {
@@ -188,7 +192,9 @@ final class MarksController: BaseController {
         view.addSubview(averageLabel)
         view.addSubview(semesterScroll)
         semesterScroll.addSubview(semesterStack)
-        view.addSubview(marksTable)
+        addChild(pager)
+        view.addSubview(pager.view)
+        pager.didMove(toParent: self)
         view.addSubview(messageLabel)
         view.addSubview(loginButton)
         view.addSubview(activity)
@@ -197,10 +203,11 @@ final class MarksController: BaseController {
     override func layoutViews() {
         super.layoutViews()
 
-        [titleLabel, averageLabel, semesterScroll, semesterStack, marksTable, messageLabel, loginButton].forEach {
+        [titleLabel, averageLabel, semesterScroll, semesterStack, messageLabel, loginButton].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
         }
         activity.translatesAutoresizingMaskIntoConstraints = false
+        pager.view.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
@@ -220,10 +227,10 @@ final class MarksController: BaseController {
             semesterStack.bottomAnchor.constraint(equalTo: semesterScroll.bottomAnchor),
             semesterStack.heightAnchor.constraint(equalTo: semesterScroll.heightAnchor),
 
-            marksTable.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            marksTable.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            marksTable.topAnchor.constraint(equalTo: semesterScroll.bottomAnchor, constant: 8),
-            marksTable.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            pager.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            pager.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            pager.view.topAnchor.constraint(equalTo: semesterScroll.bottomAnchor, constant: 8),
+            pager.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             messageLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             messageLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -242,25 +249,93 @@ final class MarksController: BaseController {
 
     override func configure() {
         super.configure()
-        marksTable.delegate = self
-        marksTable.dataSource = self
-        marksTable.rowHeight = UITableView.automaticDimension
-        marksTable.estimatedRowHeight = 90
         loginButton.addTarget(self, action: #selector(loginTapped), for: .touchUpInside)
         view.backgroundColor = AccentColors.bgColor
     }
 }
 
-extension MarksController: UITableViewDelegate, UITableViewDataSource {
+extension MarksController: UIPageViewControllerDataSource, UIPageViewControllerDelegate {
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
+        guard let current = viewController as? SemesterMarksController,
+              let index = semesters.firstIndex(of: current.semester),
+              index > 0 else { return nil }
+        return SemesterMarksController(semester: semesters[index - 1], marks: marks)
+    }
+
+    func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
+        guard let current = viewController as? SemesterMarksController,
+              let index = semesters.firstIndex(of: current.semester),
+              index + 1 < semesters.count else { return nil }
+        return SemesterMarksController(semester: semesters[index + 1], marks: marks)
+    }
+
+    func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
+        guard completed,
+              let current = pageViewController.viewControllers?.first as? SemesterMarksController else { return }
+        selectedSemester = current.semester
+        updateSemesterChips()
+        updateAverage()
+    }
+}
+
+private final class SemesterMarksController: UIViewController {
+
+    let semester: Int
+    private let allMarks: [Mark]
+
+    private let table: UITableView = {
+        let table = UITableView(frame: .zero, style: .plain)
+        table.register(MarkCell.self, forCellReuseIdentifier: MarkCell.identifier)
+        table.backgroundColor = .clear
+        table.separatorStyle = .none
+        table.showsVerticalScrollIndicator = false
+        table.rowHeight = UITableView.automaticDimension
+        table.estimatedRowHeight = 90
+        return table
+    }()
+
+    init(semester: Int, marks: [Mark]) {
+        self.semester = semester
+        self.allMarks = marks
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = AccentColors.bgColor
+
+        view.addSubview(table)
+        table.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            table.topAnchor.constraint(equalTo: view.topAnchor),
+            table.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            table.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            table.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        table.delegate = self
+        table.dataSource = self
+    }
+
+    private var visibleMarks: [Mark] {
+        allMarks.filter { $0.semester == semester }
+    }
+}
+
+extension SemesterMarksController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        visibleMarks().count
+        visibleMarks.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: MarkCell.identifier, for: indexPath) as? MarkCell else {
             return UITableViewCell()
         }
-        cell.configure(with: visibleMarks()[indexPath.row])
+        cell.configure(with: visibleMarks[indexPath.row])
         return cell
     }
 }
