@@ -269,9 +269,15 @@ extension MarksController: UIPageViewControllerDataSource, UIPageViewControllerD
         return SemesterMarksController(semester: semesters[index + 1], marks: marks)
     }
 
+    func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) {
+        guard let current = pendingViewControllers.first as? SemesterMarksController else { return }
+        selectedSemester = current.semester
+        updateSemesterChips()
+        updateAverage()
+    }
+
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
-        guard completed,
-              let current = pageViewController.viewControllers?.first as? SemesterMarksController else { return }
+        guard let current = pageViewController.viewControllers?.first as? SemesterMarksController else { return }
         selectedSemester = current.semester
         updateSemesterChips()
         updateAverage()
