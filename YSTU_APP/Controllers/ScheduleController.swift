@@ -11,7 +11,6 @@ final class ScheduleController: BaseController {
     
     private let navBar = ScheduleNavBar()
     private var currentDate = ScheduleNavBar.scheduleStartDate()
-    private var navBarSyncInProgress = false
     
     private lazy var pager: UIPageViewController = {
         let pager = UIPageViewController(transitionStyle: .scroll, navigationOrientation: .horizontal)
@@ -127,28 +126,17 @@ extension ScheduleController: UIPageViewControllerDataSource, UIPageViewControll
         return DayScheduleController(date: next)
     }
     
-    func pageViewController(_ pageViewController: UIPageViewController, willTransitionTo pendingViewControllers: [UIViewController]) {
-        guard let day = pendingViewControllers.first as? DayScheduleController else { return }
-        syncNavBar(to: day.date)
-    }
-    
     func pageViewController(_ pageViewController: UIPageViewController, didFinishAnimating finished: Bool, previousViewControllers: [UIViewController], transitionCompleted completed: Bool) {
-        guard let day = pageViewController.viewControllers?.first as? DayScheduleController else { return }
+        guard completed,
+              let day = pageViewController.viewControllers?.first as? DayScheduleController else { return }
         currentDate = day.date
-        syncNavBar(to: day.date)
-    }
-    
-    private func syncNavBar(to date: Date) {
-        navBarSyncInProgress = true
-        navBar.selectDate(date)
-        navBarSyncInProgress = false
+        navBar.selectDate(day.date)
     }
 }
 
 extension ScheduleController: ScheduleNavBarDelegate {
     func didSelectDay(_ date: Date) {
-        guard !navBarSyncInProgress,
-              !Calendar.current.isDate(date, inSameDayAs: currentDate) else { return }
+        guard !Calendar.current.isDate(date, inSameDayAs: currentDate) else { return }
         let direction: UIPageViewController.NavigationDirection = date > currentDate ? .forward : .reverse
         currentDate = date
         pager.setViewControllers([DayScheduleController(date: date)], direction: direction, animated: true)
@@ -214,36 +202,30 @@ private final class DayScheduleController: UIViewController {
     }
     
     private func loadLessons() {
-        if let cached = APICaller.shared.cachedLessons(for: date) {
-            applyLessons(cached)
-            return
-        }
         APICaller.shared.getSchedule(for: date) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                var emptyMessage = "No lessons for this day"
                 switch result {
                 case .success(let lessons):
-                    self.applyLessons(lessons)
+                    self.lessons = lessons
                 case .failure(let error):
                     print("Error: \(error)")
-                    self.applyLessons([], emptyMessage: "Failed to load schedule")
+                    self.lessons = []
+                    emptyMessage = "Failed to load schedule"
                 }
+                if self.lessons.isEmpty {
+                    let label = UILabel(frame: self.table.bounds)
+                    label.text = emptyMessage
+                    label.textAlignment = .center
+                    label.textColor = .gray
+                    self.table.backgroundView = label
+                } else {
+                    self.table.backgroundView = nil
+                }
+                self.table.reloadData()
             }
         }
-    }
-    
-    private func applyLessons(_ lessons: [Lesson], emptyMessage: String = "No lessons for this day") {
-        self.lessons = lessons
-        if lessons.isEmpty {
-            let label = UILabel(frame: table.bounds)
-            label.text = emptyMessage
-            label.textAlignment = .center
-            label.textColor = .gray
-            table.backgroundView = label
-        } else {
-            table.backgroundView = nil
-        }
-        table.reloadData()
     }
 }
 

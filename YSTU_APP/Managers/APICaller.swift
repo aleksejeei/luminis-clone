@@ -32,14 +32,13 @@ class APICaller {
 
     private let queue = DispatchQueue(label: "APICaller.schedule")
     private var itemsCache: (group: String, items: [Item])?
-    private var filteredCache: [String: [Lesson]] = [:]
     private var isFetchingSchedule = false
     private var pendingScheduleRequests: [(Date, (Result<[Lesson], Error>) -> Void)] = []
 
     func getSchedule(for date: Date, completion: @escaping (Result<[Lesson], Error>) -> Void) {
         queue.async {
-            if let lessons = self.lessonsFromItemsCache(for: date) {
-                completion(.success(lessons))
+            if let cache = self.itemsCache, cache.group == self.selectedGroup {
+                completion(.success(self.filterLessons(for: date, from: cache.items)))
                 return
             }
 
@@ -48,26 +47,6 @@ class APICaller {
             self.isFetchingSchedule = true
             self.fetchSchedule(group: self.selectedGroup)
         }
-    }
-
-    func cachedLessons(for date: Date) -> [Lesson]? {
-        queue.sync {
-            self.lessonsFromItemsCache(for: date)
-        }
-    }
-
-    // Must be called on `queue`
-    private func lessonsFromItemsCache(for date: Date) -> [Lesson]? {
-        guard let cache = itemsCache, cache.group == selectedGroup else { return nil }
-        let key = filteredCacheKey(for: date)
-        if let cached = filteredCache[key] { return cached }
-        let lessons = filterLessons(for: date, from: cache.items)
-        filteredCache[key] = lessons
-        return lessons
-    }
-
-    private func filteredCacheKey(for date: Date) -> String {
-        "\(selectedGroup)|\(Int(Calendar.current.startOfDay(for: date).timeIntervalSince1970))"
     }
 
     private func fetchSchedule(group: String) {
@@ -108,14 +87,13 @@ class APICaller {
             self.isFetchingSchedule = false
             if let items = items {
                 self.itemsCache = (group, items)
-                self.filteredCache = [:]
             }
 
             let pending = self.pendingScheduleRequests
             self.pendingScheduleRequests = []
             for (date, completion) in pending {
-                if items != nil {
-                    completion(.success(self.lessonsFromItemsCache(for: date) ?? []))
+                if let items = items {
+                    completion(.success(self.filterLessons(for: date, from: items)))
                 } else {
                     completion(.failure(error ?? APIError.failedToGetData))
                 }
